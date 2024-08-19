@@ -11,12 +11,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'pink': '#fab1b1',
         'baddie-dark': '#312930',
         'baddie-light-pink': '#eea6c4',
         'baddie-deep-purple': '#4d394e',
         'baddie-purple': '#6e486e',
-        'baddie-deep-pink': '#b9668d'
+        'baddie-deep-pink': '#b9668d',
+      },
+      backgroundImage: {
+        'girly-gradient': 'linear-gradient(to right, #b9668d, #eea6c4, #6e486e)',
       },
     },
   },
