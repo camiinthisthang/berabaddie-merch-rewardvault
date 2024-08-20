@@ -1,64 +1,48 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import type { NextPage } from 'next';
 import Head from 'next/head';
-import styles from '../styles/Home.module.css';
-import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
+import Link from 'next/link';
 import TextInput from '../components/textinput';
-import Link from 'next/link'
-
-const user = {
-  name: 'Tom Cook',
-  email: 'tom@example.com',
-  imageUrl:
-    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
-}
-const navigation = [
-  { name: 'Home', href: '#', current: true },
-  { name: 'Stake', href: '/stake', current: false },
-]
-
-function classNames(...classes) {
-  return classes.filter(Boolean).join(' ')
-}
 
 const Home: NextPage = () => {
   return (
-    <div className="bg-girly-gradient min-h-screen">
+    <div className="relative min-h-screen">
       <Head>
         <title>BeraBaddies</title>
         <meta name="description" content="A sleek, girly home page for BeraBaddies" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <header className="bg-white shadow-md">
-        <nav className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-          <h1 className="text-4xl font-extrabold text-gray-800">BeraBaddies</h1>
-          <div className="space-x-4">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                aria-current={item.current ? 'page' : undefined}
-                className={classNames(
-                  item.current
-                    ? 'text-indigo-600 border-b-2 border-indigo-600'
-                    : 'text-gray-600 hover:text-indigo-500',
-                  'text-lg font-semibold'
-                )}
-              >
-                {item.name}
-              </Link>
-            ))}
-          </div>
-        </nav>
-      </header>
+      {/* Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        className="absolute top-0 left-0 w-full h-full object-cover z-0"
+      >
+        <source src="/videos/background.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
 
-      <main className="py-12">
-        <div className="mx-auto max-w-lg px-4 py-8 bg-white shadow-lg rounded-lg">
-          <div className="text-center mb-8">
-            <ConnectButton />
+      {/* Content Overlay */}
+      <div className="relative z-10 min-h-screen flex flex-col">
+        {/* Header */}
+        <header className="p-4 flex justify-between items-center">
+          <div className="space-x-4">
+            <Link href="/" className="text-white text-xl font-bold hover:text-pink-300">
+              Claim
+            </Link>
+            <span className="text-white text-xl">|</span>
+            <Link href="/stake" className="text-white text-xl font-bold hover:text-pink-300">
+              Stake
+            </Link>
           </div>
-          <div className="space-y-6">
+          <ConnectButton />
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-grow flex flex-col items-center justify-center">
+          <div className="bg-white bg-opacity-80 p-8 rounded-lg shadow-lg space-y-6 max-w-md w-full">
             <TextInput 
               label="Serial number" 
               placeholder="HDA76D8S6f7A" 
@@ -77,12 +61,14 @@ const Home: NextPage = () => {
               id="telegram" 
               type="text"
             />
+            <button className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-full transition-colors">
+              Claim $BeraBaddie🥰
+            </button>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 };
-
 
 export default Home;
