@@ -6,13 +6,13 @@ import "../src/MerchNFT.sol";
 
 contract MerchNFTTest is Test {
     MerchNFT public merchNFT;
-    address public owner;
-    address public buyer;
+    address public deployer;
+    address public approvedAddress;
     address public user;
 
     function setUp() public {
-        owner = address(this);
-        buyer = address(0x1);
+        deployer = address(this);
+        approvedAddress = address(0x1);
         user = address(0x2);
         merchNFT = new MerchNFT("MerchNFT", "MNFT");
     }
@@ -20,7 +20,7 @@ contract MerchNFTTest is Test {
     function testInitialState() public {
         assertEq(merchNFT.name(), "MerchNFT");
         assertEq(merchNFT.symbol(), "MNFT");
-        assertEq(merchNFT.owner(), owner);
+        assertTrue(merchNFT.isApproved(deployer));
         assertEq(merchNFT.totalSupply(), 0);
     }
 
@@ -30,76 +30,107 @@ contract MerchNFTTest is Test {
         assertTrue(merchNFT.validHashes(hash));
     }
 
-    function testAddValidHashOnlyOwner() public {
+    function testAddValidHashOnlyApproved() public {
         bytes32 hash = keccak256(abi.encodePacked("TEST123"));
         vm.prank(user);
-        vm.expectRevert("Not the owner");
+        vm.expectRevert("Not approved");
         merchNFT.addValidHash(hash);
     }
 
-    function testAddBuyer() public {
-        merchNFT.addBuyer(buyer);
-        assertTrue(merchNFT.isBuyer(buyer));
+    function testAddApprovedAddress() public {
+        merchNFT.addApprovedAddress(approvedAddress);
+        assertTrue(merchNFT.isApproved(approvedAddress));
     }
 
-    function testAddBuyerOnlyOwner() public {
+    function testAddApprovedAddressOnlyApproved() public {
         vm.prank(user);
-        vm.expectRevert("Not the owner");
-        merchNFT.addBuyer(buyer);
+        vm.expectRevert("Not approved");
+        merchNFT.addApprovedAddress(approvedAddress);
+    }
+
+    function testRemoveApprovedAddress() public {
+        merchNFT.addApprovedAddress(approvedAddress);
+        merchNFT.removeApprovedAddress(approvedAddress);
+        assertFalse(merchNFT.isApproved(approvedAddress));
+    }
+
+    function testRemoveApprovedAddressCannotRemoveSelf() public {
+        vm.expectRevert("Cannot remove self");
+        merchNFT.removeApprovedAddress(deployer);
     }
 
     function testWrapperMint() public {
-        merchNFT.addBuyer(buyer);
-
         string memory serialNumber = "TEST123";
+        string memory twitterHandle = "@user";
+        string memory telegramHandle = "@user_tg";
         bytes32 hash = keccak256(abi.encodePacked(serialNumber));
         merchNFT.addValidHash(hash);
 
-        vm.prank(buyer);
-        merchNFT.wrapperMint(user, abi.encode(serialNumber), "https://example.com/merch/1");
+        merchNFT.wrapperMint(user, serialNumber, twitterHandle, telegramHandle);
 
         assertEq(merchNFT.totalSupply(), 1);
         assertEq(merchNFT.ownerOf(1), user);
-        assertEq(merchNFT.tokenURI(1), "https://example.com/merch/1");
-        assertEq(merchNFT.getSerialNumber(1), serialNumber);
         assertFalse(merchNFT.validHashes(hash)); // Hash should be invalidated after use
+
+        MerchNFT.TokenMetadata memory metadata = merchNFT.getTokenMetadata(1);
+        assertEq(metadata.serialNumber, serialNumber);
+        assertEq(metadata.twitterHandle, twitterHandle);
+        assertEq(metadata.telegramHandle, telegramHandle);
+        assertEq(metadata.owner, user);
     }
 
     function testWrapperMintInvalidSerialNumber() public {
-        merchNFT.addBuyer(buyer);
-
         string memory serialNumber = "INVALID";
-        vm.prank(buyer);
+        string memory twitterHandle = "@user";
+        string memory telegramHandle = "@user_tg";
         vm.expectRevert("Invalid serial number");
-        merchNFT.wrapperMint(user, abi.encode(serialNumber), "https://example.com/merch/1");
+        merchNFT.wrapperMint(user, serialNumber, twitterHandle, telegramHandle);
     }
 
-    function testWrapperMintOnlyBuyer() public {
+    function testWrapperMintOnlyApproved() public {
         string memory serialNumber = "TEST123";
+        string memory twitterHandle = "@user";
+        string memory telegramHandle = "@user_tg";
         bytes32 hash = keccak256(abi.encodePacked(serialNumber));
         merchNFT.addValidHash(hash);
 
         vm.prank(user);
-        vm.expectRevert("Not a buyer");
-        merchNFT.wrapperMint(user, abi.encode(serialNumber), "https://example.com/merch/1");
+        vm.expectRevert("Not approved");
+        merchNFT.wrapperMint(user, serialNumber, twitterHandle, telegramHandle);
     }
 
-    function testGetSerialNumber() public {
-        merchNFT.addBuyer(buyer);
-
+    function testGetTokenMetadata() public {
         string memory serialNumber = "TEST123";
+        string memory twitterHandle = "@user";
+        string memory telegramHandle = "@user_tg";
         bytes32 hash = keccak256(abi.encodePacked(serialNumber));
         merchNFT.addValidHash(hash);
 
-        vm.prank(buyer);
-        merchNFT.wrapperMint(user, abi.encode(serialNumber), "https://example.com/merch/1");
+        merchNFT.wrapperMint(user, serialNumber, twitterHandle, telegramHandle);
 
-        assertEq(merchNFT.getSerialNumber(1), serialNumber);
+        MerchNFT.TokenMetadata memory metadata = merchNFT.getTokenMetadata(1);
+        assertEq(metadata.serialNumber, serialNumber);
+        assertEq(metadata.twitterHandle, twitterHandle);
+        assertEq(metadata.telegramHandle, telegramHandle);
+        assertEq(metadata.owner, user);
     }
 
-    function testGetSerialNumberNonexistentToken() public {
+    function testGetTokenMetadataNonexistentToken() public {
         vm.expectRevert("Token does not exist");
-        merchNFT.getSerialNumber(1);
+        merchNFT.getTokenMetadata(1);
+    }
+
+    function testTokenURI() public {
+        string memory serialNumber = "TEST123";
+        string memory twitterHandle = "@user";
+        string memory telegramHandle = "@user_tg";
+        bytes32 hash = keccak256(abi.encodePacked(serialNumber));
+        merchNFT.addValidHash(hash);
+
+        merchNFT.wrapperMint(user, serialNumber, twitterHandle, telegramHandle);
+
+        string memory expectedURI = "https://api.example.com/token/1";
+        assertEq(merchNFT.tokenURI(1), expectedURI);
     }
 
     function testTokenURINonexistentToken() public {

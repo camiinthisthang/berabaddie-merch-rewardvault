@@ -12,6 +12,7 @@ contract BeraBaddieAirdropTest is Test {
     BeraBaddieToken private token;
     MerchNFT private nft;
     Airdrop private airdrop;
+    address private approvedMinter;
 
     struct Reward {
         address to;
@@ -28,6 +29,10 @@ contract BeraBaddieAirdropTest is Test {
     function setUp() public {
         token = new BeraBaddieToken("BeraBaddie", "BBT", 18);
         nft = new MerchNFT("BeraBaddie Merch", "BBM");
+        approvedMinter = address(0xA);
+        
+        // Add approvedMinter to the list of approved addresses
+        nft.addApprovedAddress(approvedMinter);
 
         // Initialize users and airdrop amounts
         for (uint256 i = 0; i < N; i++) {
@@ -47,16 +52,17 @@ contract BeraBaddieAirdropTest is Test {
         address user = address(uint160(1)); // Use the first user from the rewards array
         uint256 tokenId = 1;
         string memory serialNumber = "SN12345";
-        string memory merchLink = "https://example.com/merch/1";
+        string memory twitterHandle = "@user1";
+        string memory telegramHandle = "@user1_tg";
 
-        // Add user as a buyer and add a valid hash
-        nft.addBuyer(user);
+        // Add a valid hash
         bytes32 validHash = keccak256(abi.encodePacked(serialNumber));
+        vm.prank(approvedMinter);
         nft.addValidHash(validHash);
 
         // Mint NFT
-        vm.prank(user);
-        nft.wrapperMint(user, abi.encode(serialNumber), merchLink);
+        vm.prank(approvedMinter);
+        nft.wrapperMint(user, serialNumber, twitterHandle, telegramHandle);
 
         // Check NFT ownership
         assertEq(nft.ownerOf(tokenId), user);
@@ -78,16 +84,17 @@ contract BeraBaddieAirdropTest is Test {
             address user = address(uint160(i + 1));
             uint256 tokenId = i + 1;
             string memory serialNumber = string(abi.encodePacked("SN", Strings.toString(tokenId)));
-            string memory merchLink = string(abi.encodePacked("https://example.com/merch/", Strings.toString(tokenId)));
+            string memory twitterHandle = string(abi.encodePacked("@user", Strings.toString(i + 1)));
+            string memory telegramHandle = string(abi.encodePacked("@user", Strings.toString(i + 1), "_tg"));
 
-            // Add user as a buyer and add a valid hash
-            nft.addBuyer(user);
+            // Add a valid hash
             bytes32 validHash = keccak256(abi.encodePacked(serialNumber));
+            vm.prank(approvedMinter);
             nft.addValidHash(validHash);
 
             // Mint NFT
-            vm.prank(user);
-            nft.wrapperMint(user, abi.encode(serialNumber), merchLink);
+            vm.prank(approvedMinter);
+            nft.wrapperMint(user, serialNumber, twitterHandle, telegramHandle);
 
             // Check NFT ownership
             assertEq(nft.ownerOf(tokenId), user);
@@ -109,16 +116,17 @@ contract BeraBaddieAirdropTest is Test {
         address user = address(uint160(1)); // Use the first user from the rewards array
         uint256 tokenId = 1;
         string memory serialNumber = "SN12345";
-        string memory merchLink = "https://example.com/merch/1";
+        string memory twitterHandle = "@user1";
+        string memory telegramHandle = "@user1_tg";
 
-        // Add user as a buyer and add a valid hash
-        nft.addBuyer(user);
+        // Add a valid hash
         bytes32 validHash = keccak256(abi.encodePacked(serialNumber));
+        vm.prank(approvedMinter);
         nft.addValidHash(validHash);
 
         // Mint NFT
-        vm.prank(user);
-        nft.wrapperMint(user, abi.encode(serialNumber), merchLink);
+        vm.prank(approvedMinter);
+        nft.wrapperMint(user, serialNumber, twitterHandle, telegramHandle);
 
         // Generate proof for the user
         bytes32 leaf = keccak256(abi.encode(user, AIRDROP_AMOUNT));

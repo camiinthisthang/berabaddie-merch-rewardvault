@@ -8,42 +8,53 @@ contract MerchNFT is ERC721 {
     uint256 public totalSupply;
     mapping(uint256 => string) private serialNumbers;
     mapping(bytes32 => bool) public validHashes;
-    mapping(uint256 => string) private merchLinks;
-    mapping(address => bool) public isBuyer;
-    address public owner;
+    mapping(uint256 => string) private twitterHandles;
+    mapping(uint256 => string) private telegramHandles;
+    mapping(address => bool) public isApproved;
+
+    struct TokenMetadata {
+        string serialNumber;
+        string twitterHandle;
+        string telegramHandle;
+        address owner;
+    }
 
     constructor(string memory _name, string memory _symbol) ERC721(_name, _symbol) {
-        owner = msg.sender;
+        isApproved[msg.sender] = true; // The deployer is automatically approved
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Not the owner");
+    modifier onlyApproved() {
+        require(isApproved[msg.sender], "Not approved");
         _;
     }
 
-    modifier onlyBuyer() {
-        require(isBuyer[msg.sender], "Not a buyer");
-        _;
+    function addApprovedAddress(address _address) external onlyApproved {
+        isApproved[_address] = true;
     }
 
-    function addBuyer(address _buyer) external onlyOwner {
-        isBuyer[_buyer] = true;
+    function removeApprovedAddress(address _address) external onlyApproved {
+        require(_address != msg.sender, "Cannot remove self");
+        isApproved[_address] = false;
     }
 
-    function addValidHash(bytes32 hash) external onlyOwner {
+    function addValidHash(bytes32 hash) external onlyApproved {
         validHashes[hash] = true;
     }
 
-    function wrapperMint(address to, bytes calldata serialNumberData, string calldata merchLink) external onlyBuyer {
-        string memory serialNumber = abi.decode(serialNumberData, (string));
-
+    function wrapperMint(
+        address to,
+        string calldata serialNumber,
+        string calldata twitterHandle,
+        string calldata telegramHandle
+    ) external onlyApproved {
         require(verifySerialNumber(serialNumber), "Invalid serial number");
         
         uint256 tokenId = totalSupply + 1;
         _safeMint(to, tokenId);
 
         serialNumbers[tokenId] = serialNumber;
-        merchLinks[tokenId] = merchLink;
+        twitterHandles[tokenId] = twitterHandle;
+        telegramHandles[tokenId] = telegramHandle;
         totalSupply++;
 
         // Invalidate the hash after use
@@ -55,13 +66,21 @@ contract MerchNFT is ERC721 {
         return validHashes[hash];
     }
 
-    function getSerialNumber(uint256 tokenId) external view returns (string memory) {
+    function getTokenMetadata(uint256 tokenId) external view returns (TokenMetadata memory) {
         require(_ownerOf[tokenId] != address(0), "Token does not exist");
-        return serialNumbers[tokenId];
+        return TokenMetadata({
+            serialNumber: serialNumbers[tokenId],
+            twitterHandle: twitterHandles[tokenId],
+            telegramHandle: telegramHandles[tokenId],
+            owner: _ownerOf[tokenId]
+        });
     }
 
     function tokenURI(uint256 id) public view override returns (string memory) {
         require(_ownerOf[id] != address(0), "Token does not exist");
-        return merchLinks[id];
+        
+        // Here you would typically return a URL to a JSON file containing the metadata
+        // For this example, we're returning a placeholder URL
+        return string(abi.encodePacked("https://api.example.com/token/", Strings.toString(id)));
     }
 }
