@@ -1,67 +1,89 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract BeraBaddieToken {
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(
-        address indexed owner, address indexed spender, uint256 value
-    );
+import "../lib/solmate/src/tokens/ERC20.sol";
+import "./MerchNFT.sol";
 
-    uint256 public totalSupply;
-    mapping(address => uint256) public balanceOf;
-    mapping(address => mapping(address => uint256)) public allowance;
-    string public name;
-    string public symbol;
-    uint8 public decimals;
-    mapping(address => bool) public authorized;
+contract BeraBaddieToken is ERC20 {
+    MerchNFT public immutable merchNFT;
+    mapping(bytes32 => bool) public claimedSerials;
+    uint256 public constant TOKENS_PER_NFT = 10 * 1e18;
 
-    constructor(string memory _name, string memory _symbol, uint8 _decimals) {
-        name = _name;
-        symbol = _symbol;
-        decimals = _decimals;
-        authorized[msg.sender] = true;
+    mapping(address => bool) public owners;
+    address public immutable deployer;
+
+    event Claimed(address indexed claimer, string serialNumber, uint256 amount);
+    event OwnerAdded(address indexed newOwner);
+    event OwnerRemoved(address indexed removedOwner);
+
+    modifier onlyOwner() {
+        require(owners[msg.sender], "Not authorized");
+        _;
     }
 
-    function setAuthorized(address addr, bool auth) external {
-        require(authorized[msg.sender], "not authorized");
-        authorized[addr] = auth;
-    }
-
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool)
+    constructor(string memory _name, string memory _symbol, uint8 _decimals, uint256 _totalSupply, address _merchNFTAddress) 
+        ERC20(_name, _symbol, _decimals) 
     {
-        balanceOf[msg.sender] -= amount;
-        balanceOf[recipient] += amount;
-        emit Transfer(msg.sender, recipient, amount);
-        return true;
+        merchNFT = MerchNFT(_merchNFTAddress);
+        _mint(address(this), _totalSupply);
+        deployer = msg.sender;
+        owners[msg.sender] = true;
     }
 
-    function approve(address spender, uint256 amount) external returns (bool) {
-        allowance[msg.sender][spender] = amount;
-        emit Approval(msg.sender, spender, amount);
-        return true;
+    function addOwner(address newOwner) external onlyOwner {
+        require(newOwner != address(0), "Invalid address");
+        owners[newOwner] = true;
+        emit OwnerAdded(newOwner);
     }
 
-    function transferFrom(address sender, address recipient, uint256 amount)
-        external
-        returns (bool)
-    {
-        allowance[sender][msg.sender] -= amount;
-        balanceOf[sender] -= amount;
-        balanceOf[recipient] += amount;
-        emit Transfer(sender, recipient, amount);
-        return true;
+    function removeOwner(address ownerToRemove) external {
+        require(msg.sender == deployer, "Only deployer can remove owners");
+        require(ownerToRemove != deployer, "Cannot remove deployer");
+        owners[ownerToRemove] = false;
+        emit OwnerRemoved(ownerToRemove);
     }
 
-    function _mint(address to, uint256 amount) internal {
-        balanceOf[to] += amount;
-        totalSupply += amount;
-        emit Transfer(address(0), to, amount);
-    }
-
-    function mint(address to, uint256 amount) external {
-        require(authorized[msg.sender], "not authorized");
+    function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
+    }
+
+    function burn(address from, uint256 amount) external onlyOwner {
+        _burn(from, amount);
+    }
+
+    function claim(string calldata serialNumber) external {
+        bytes32 serialHash = keccak256(abi.encodePacked(serialNumber));
+        require(!claimedSerials[serialHash], "Serial number already claimed");
+
+        uint256 tokenId = merchNFT.serialToTokenId(serialHash);
+        require(tokenId != 0, "Invalid serial number");
+        require(merchNFT.ownerOf(tokenId) == msg.sender, "Must own MerchNFT with this serial number to claim");
+
+        uint256 claimAmount = TOKENS_PER_NFT;
+        require(balanceOf[address(this)] >= claimAmount, "Insufficient balance in contract");
+
+        claimedSerials[serialHash] = true;
+
+        _transfer(address(this), msg.sender, claimAmount);
+
+        emit Claimed(msg.sender, serialNumber, claimAmount);
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal {
+        require(from != address(0), "ERC20: transfer from the zero address");
+        require(to != address(0), "ERC20: transfer to the zero address");
+
+        uint256 fromBalance = balanceOf[from];
+        require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
+        unchecked {
+            balanceOf[from] = fromBalance - amount;
+            balanceOf[to] += amount;
+        }
+
+        emit Transfer(from, to, amount);
     }
 }

@@ -8,7 +8,7 @@ This repository contains the smart contracts for the BeraBaddie project, includi
 
 BeraBaddieToken is an ERC20-compatible token with additional authorization features. It allows for minting new tokens and setting authorized addresses that can perform certain privileged actions.
 
-Deployed at: [0x823E4867A834496E86f9330F21740E516fCA6653](https://bartio.beratrail.io/token/0x823E4867A834496E86f9330F21740E516fCA6653)
+Deployed at: [0xBDBbc2FBfE2a74dcf3a26c5C1D45cc76Bc445A37](https://bartio.beratrail.io/token/0xBDBbc2FBfE2a74dcf3a26c5C1D45cc76Bc445A37)
 Rewards Vault at: [0xC89c5D177784FF6eB11620cD6Cf21820311FCD7e](https://bartio.beratrail.io/address/0xC89c5D177784FF6eB11620cD6Cf21820311FCD7e)
 
 ### MerchNFT (BBM)

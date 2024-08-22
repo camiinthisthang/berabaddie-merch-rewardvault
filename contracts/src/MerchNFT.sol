@@ -11,6 +11,7 @@ contract MerchNFT is ERC721 {
     mapping(uint256 => string) private twitterHandles;
     mapping(uint256 => string) private telegramHandles;
     mapping(address => bool) public isApproved;
+    mapping(bytes32 => uint256) public serialToTokenId;
 
     struct TokenMetadata {
         string serialNumber;
@@ -56,6 +57,7 @@ contract MerchNFT is ERC721 {
         twitterHandles[tokenId] = twitterHandle;
         telegramHandles[tokenId] = telegramHandle;
         totalSupply++;
+        serialToTokenId[keccak256(abi.encodePacked(serialNumber))] = tokenId;
 
         // Invalidate the hash after use
         validHashes[keccak256(abi.encodePacked(serialNumber))] = false;
