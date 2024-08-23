@@ -10,9 +10,9 @@ import { abi as merchNFTAbi } from '../../abi/MerchNFT.json';
 import PinkSpinner from '../components/PinkSpinner';
 import { keccak256, toHex } from 'viem';
 
-const CONTRACT_ADDRESS = '0x1B031E6f90C912e4c27a9093312F63a894AECaae';
+const CONTRACT_ADDRESS = '0x1a8D9CE295485310130A4ec41029eDe6a00Fdc8A';
 const EXPLORER_URL = 'https://bartio.beratrail.io/';
-const MERCHNFT_ADDRESS = '0xC89c5D177784FF6eB11620cD6Cf21820311FCD7e';
+const MERCHNFT_ADDRESS = '0xfE8CA5C708Daf7e6A321a0573841b61070fAC052';
 
 const Home: NextPage = () => {
   const [serialNumber, setSerialNumber] = useState('');
@@ -43,9 +43,10 @@ const Home: NextPage = () => {
   const checkSerialNumber = async () => {
     if (!serialNumber) return false;
     console.log('Checking serial number:', serialNumber);
-    console.log('Hash:', keccak256(toHex(serialNumber)));
+    const serialHash = keccak256(toHex(serialNumber));
+    console.log('Hash:', serialHash);
     await refetchIsValidSerial();
-    console.log('Is valid serial:', isValidSerial);
+    console.log('Token ID:', isValidSerial);
     return isValidSerial && BigInt(isValidSerial) !== BigInt(0);
   };
 
@@ -59,6 +60,8 @@ const Home: NextPage = () => {
           setErrorMessage('Invalid serial number. Please check and try again.');
         } else if (claimError.message.includes('Must own MerchNFT')) {
           setErrorMessage('You must own the MerchNFT with this serial number to claim.');
+        } else if (claimError.message.includes('Insufficient balance in contract')) {
+          setErrorMessage('The contract does not have enough tokens to fulfill this claim. Please contact support.');
         } else {
           setErrorMessage(`Error: ${claimError.message}`);
         }

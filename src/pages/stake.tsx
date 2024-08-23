@@ -1,10 +1,64 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import React from 'react';
+import React, { useState } from 'react';
 import Head from 'next/head';
 import TextInput from '../components/textinput';
 import Link from 'next/link';
+import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import { abi } from '../../abi/BerachainRewardsVault.json';
+import PinkSpinner from '../components/PinkSpinner';
+
+const VAULT_ADDRESS = '0x30218362267600895Dcf6ccCDb7191dE7c01085F';
+const EXPLORER_URL = 'https://bartio.beratrail.io/';
 
 const Stake = () => {
+  const [stakeAmount, setStakeAmount] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const { address } = useAccount();
+
+  const { 
+    writeContract: writeStake,
+    data: stakeHash,
+    isPending: isStakePending,
+    error: stakeError 
+  } = useWriteContract();
+
+  const { 
+    isLoading: isStakeConfirming, 
+    isSuccess: isStakeConfirmed 
+  } = useWaitForTransactionReceipt({
+    hash: stakeHash,
+  });
+
+  const handleStake = async () => {
+    setErrorMessage('');
+    if (!stakeAmount) {
+      setErrorMessage('Please enter an amount to stake');
+      return;
+    }
+    if (!address) {
+      setErrorMessage('Please connect your wallet');
+      return;
+    }
+
+    try {
+      const amount = BigInt(parseFloat(stakeAmount) * 1e18); // Convert to wei
+      console.log('Attempting to stake:', amount.toString());
+      await writeStake({
+        address: VAULT_ADDRESS,
+        abi: abi,
+        functionName: 'delegateStake',
+        args: [address, amount],
+      });
+    } catch (error) {
+      console.error('Error during staking process:', error);
+      if (error instanceof Error) {
+        setErrorMessage(`Error: ${error.message}`);
+      } else {
+        setErrorMessage('An unknown error occurred during the staking process');
+      }
+    }
+  };
+
   return (
     <div className="relative min-h-screen">
       <Head>
@@ -49,13 +103,47 @@ const Stake = () => {
               placeholder="Stake $BeraBaddie" 
               id="stakeAmount" 
               type="text"
+              value={stakeAmount}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStakeAmount(e.target.value)}
             />
-            <button className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-full transition-colors">
-              Gib 🥺👉👈
+            <button 
+              onClick={handleStake}
+              disabled={isStakePending || isStakeConfirming}
+              className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-full transition-colors disabled:bg-pink-300 disabled:cursor-not-allowed"
+            >
+              {isStakePending ? 'Confirming...' : isStakeConfirming ? 'Staking...' : 'Gib 🥺👉👈'}
             </button>
+            {errorMessage && (
+              <div className="mt-2 text-sm text-red-600">
+                {errorMessage}
+              </div>
+            )}
+            {isStakeConfirmed && (
+              <div className="mt-2 text-lg font-bold text-green-600">
+                Stake confirmed! ✅
+                <br />
+                <a 
+                  href={`${EXPLORER_URL}/tx/${stakeHash}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-pink-500 hover:text-pink-600"
+                >
+                  View on Explorer
+                </a>
+              </div>
+            )}
           </div>
         </main>
       </div>
+
+      {(isStakePending || isStakeConfirming) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="text-white text-2xl font-bold">
+            <PinkSpinner />
+            <p className="mt-4">Loading...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

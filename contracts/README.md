@@ -8,8 +8,8 @@ This repository contains the smart contracts for the BeraBaddie project, includi
 
 BeraBaddieToken is an ERC20-compatible token with additional authorization features. It allows for minting new tokens and setting authorized addresses that can perform certain privileged actions.
 
-Deployed at: [0x1B031E6f90C912e4c27a9093312F63a894AECaae](https://bartio.beratrail.io/token/0x1B031E6f90C912e4c27a9093312F63a894AECaae)
-Rewards Vault at: [0xb283f1FF1Ca63e49a6Bc2c3bFD5A5f30cA8d6283](https://bartio.beratrail.io/address/0xb283f1FF1Ca63e49a6Bc2c3bFD5A5f30cA8d6283)
+Deployed at: [0x1a8D9CE295485310130A4ec41029eDe6a00Fdc8A](https://bartio.beratrail.io/token/0x1a8D9CE295485310130A4ec41029eDe6a00Fdc8A)
+Rewards Vault at: [0x30218362267600895Dcf6ccCDb7191dE7c01085F](https://bartio.beratrail.io/address/0x30218362267600895Dcf6ccCDb7191dE7c01085F)
 
 ### MerchNFT (BBM)
 
@@ -18,7 +18,7 @@ MerchNFT is an ERC721-compatible token representing merchandise. It includes fea
 - Buyer authorization
 - Linking merchandise to external URIs
 
-Deployed at: [0xC89c5D177784FF6eB11620cD6Cf21820311FCD7e](https://bartio.beratrail.io/address/0xC89c5D177784FF6eB11620cD6Cf21820311FCD7e)
+Deployed at: [0xfE8CA5C708Daf7e6A321a0573841b61070fAC052](https://bartio.beratrail.io/address/0xfE8CA5C708Daf7e6A321a0573841b61070fAC052)
 
 ### Airdrop
 

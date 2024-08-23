@@ -8,7 +8,7 @@ import { abi } from '../../abi/MerchNFT.json';
 import PinkSpinner from '../components/PinkSpinner';
 
 const PASSWORD = 'berabaddiebabybabbybaliciousberaboken';
-const CONTRACT_ADDRESS = '0xC89c5D177784FF6eB11620cD6Cf21820311FCD7e';
+const CONTRACT_ADDRESS = '0xfE8CA5C708Daf7e6A321a0573841b61070fAC052';
 const EXPLORER_URL = 'https://bartio.beratrail.io/';
 
 const BigBidness = () => {
