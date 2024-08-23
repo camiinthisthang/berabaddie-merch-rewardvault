@@ -4,22 +4,20 @@ import Head from 'next/head';
 import Link from 'next/link';
 import TextInput from '../components/textinput';
 import { useState, useEffect } from 'react';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi';
 import { abi } from '../../abi/BeraBaddieToken.json';
-import PinkSpinner from '../components/PinkSpinner';
-import { useReadContract } from 'wagmi';
-import { keccak256, toHex } from 'viem';
 import { abi as merchNFTAbi } from '../../abi/MerchNFT.json';
+import PinkSpinner from '../components/PinkSpinner';
+import { keccak256, toHex } from 'viem';
 
-const CONTRACT_ADDRESS = '0xBDBbc2FBfE2a74dcf3a26c5C1D45cc76Bc445A37'; // Replace with actual address
+const CONTRACT_ADDRESS = '0x1B031E6f90C912e4c27a9093312F63a894AECaae';
 const EXPLORER_URL = 'https://bartio.beratrail.io/';
 const MERCHNFT_ADDRESS = '0xC89c5D177784FF6eB11620cD6Cf21820311FCD7e';
 
 const Home: NextPage = () => {
   const [serialNumber, setSerialNumber] = useState('');
-  const [recipientAddress, setRecipientAddress] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [validHashes, setValidHashes] = useState<string[]>([]);
+  const { address } = useAccount();
 
   const { 
     writeContract: writeClaim,
@@ -35,31 +33,32 @@ const Home: NextPage = () => {
     hash: claimHash,
   });
 
-  const { data: allValidHashes } = useReadContract({
+  const { data: isValidSerial, refetch: refetchIsValidSerial } = useReadContract({
     address: MERCHNFT_ADDRESS,
     abi: merchNFTAbi,
-    functionName: 'getAllValidHashes',
+    functionName: 'serialToTokenId',
+    args: [keccak256(toHex(serialNumber || ''))],
   });
 
-  const readValidHashes = async () => {
-    setErrorMessage('');
-    try {
-      console.log('All valid hashes:', allValidHashes);
-      if (Array.isArray(allValidHashes)) {
-        setValidHashes(allValidHashes);
-      }
-    } catch (error) {
-      console.error('Error reading valid hashes:', error);
-      setErrorMessage('Error reading valid hashes');
-    }
+  const checkSerialNumber = async () => {
+    if (!serialNumber) return false;
+    console.log('Checking serial number:', serialNumber);
+    console.log('Hash:', keccak256(toHex(serialNumber)));
+    await refetchIsValidSerial();
+    console.log('Is valid serial:', isValidSerial);
+    return isValidSerial && BigInt(isValidSerial) !== BigInt(0);
   };
 
   useEffect(() => {
     if (claimError) {
       console.error('Claim Error:', claimError);
       if (claimError instanceof Error) {
-        if (claimError.message.includes('Invalid serial number')) {
+        if (claimError.message.includes('Serial number already claimed')) {
+          setErrorMessage('This serial number has already been claimed.');
+        } else if (claimError.message.includes('Invalid serial number')) {
           setErrorMessage('Invalid serial number. Please check and try again.');
+        } else if (claimError.message.includes('Must own MerchNFT')) {
+          setErrorMessage('You must own the MerchNFT with this serial number to claim.');
         } else {
           setErrorMessage(`Error: ${claimError.message}`);
         }
@@ -71,12 +70,25 @@ const Home: NextPage = () => {
 
   const handleClaim = async () => {
     setErrorMessage('');
-    if (!serialNumber || !recipientAddress) {
-      setErrorMessage('Please enter both serial number and recipient address');
+    if (!serialNumber) {
+      setErrorMessage('Please enter a serial number');
       return;
     }
+    if (!address) {
+      setErrorMessage('Please connect your wallet');
+      return;
+    }
+    
+    console.log('Checking serial number validity...');
+    const isValid = await checkSerialNumber();
+    console.log('Serial number is valid:', isValid);
+    if (!isValid) {
+      setErrorMessage('Invalid serial number. Please check and try again.');
+      return;
+    }
+
     try {
-      console.log('Attempting to claim with serial number:', serialNumber, 'for recipient:', recipientAddress);
+      console.log('Attempting to claim with serial number:', serialNumber);
       await writeClaim({
         address: CONTRACT_ADDRESS,
         abi: abi,
@@ -86,11 +98,7 @@ const Home: NextPage = () => {
     } catch (error) {
       console.error('Error during claim process:', error);
       if (error instanceof Error) {
-        if (error.message.includes('Invalid serial number')) {
-          setErrorMessage('Invalid serial number. Please check and try again.');
-        } else {
-          setErrorMessage(`Error: ${error.message}`);
-        }
+        setErrorMessage(`Error: ${error.message}`);
       } else {
         setErrorMessage('An unknown error occurred during the claim process');
       }
@@ -143,14 +151,6 @@ const Home: NextPage = () => {
               value={serialNumber}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSerialNumber(e.target.value)}
             />
-            <TextInput 
-              label="Recipient Address" 
-              placeholder="0x..." 
-              id="recipientAddress" 
-              type="text"
-              value={recipientAddress}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRecipientAddress(e.target.value)}
-            />
             <button 
               onClick={handleClaim}
               disabled={isClaimPending || isClaimConfirming}
@@ -158,16 +158,6 @@ const Home: NextPage = () => {
             >
               Claim $BeraBaddie🥰
             </button>
-            {validHashes.length > 0 && (
-              <div className="mt-4">
-                <h3 className="font-bold">Valid Hashes:</h3>
-                <ul className="max-h-40 overflow-y-auto">
-                  {validHashes.map((hash, index) => (
-                    <li key={index} className="text-xs break-all">{hash}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
             {errorMessage && (
               <div className="mt-2 text-sm text-red-600">
                 {errorMessage}

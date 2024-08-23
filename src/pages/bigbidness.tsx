@@ -47,6 +47,12 @@ const BigBidness = () => {
     args: [keccak256(toHex(serialNumber || ''))],
   });
 
+  const { data: allValidHashes, refetch: refetchAllValidHashes } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: abi,
+    functionName: 'getAllValidHashes',
+  });
+
   useEffect(() => {
     if (isAddHashConfirmed) {
       refetchIsValidHash();
@@ -58,6 +64,12 @@ const BigBidness = () => {
       setIsSerialNumberAdded(true);
     }
   }, [isValidHash]);
+
+  useEffect(() => {
+    if (allValidHashes) {
+      console.log('All valid hashes:', allValidHashes);
+    }
+  }, [allValidHashes]);
 
   useEffect(() => {
     if (mintError) {
@@ -89,7 +101,7 @@ const BigBidness = () => {
       console.error('No serial number generated');
       return;
     }
-    const serialNumberHash = keccak256(toHex(`${serialNumber}`));
+    const serialNumberHash = keccak256(toHex(serialNumber));
     try {
       await writeAddValidHash({
         address: CONTRACT_ADDRESS,
@@ -98,6 +110,7 @@ const BigBidness = () => {
         args: [serialNumberHash],
       });
       console.log('Adding serial number:', serialNumber);
+      refetchAllValidHashes();
     } catch (error) {
       console.error('Error adding serial number:', error);
       setErrorMessage('Error adding serial number. Please try again.');
@@ -106,8 +119,8 @@ const BigBidness = () => {
 
   const handleMint = async () => {
     setErrorMessage('');
-    if (!recipientAddress) {
-      setErrorMessage('No recipient address provided');
+    if (!recipientAddress || !serialNumber || !twitterHandle || !telegramHandle) {
+      setErrorMessage('Please fill in all fields');
       return;
     }
     if (!isValidHash) {
