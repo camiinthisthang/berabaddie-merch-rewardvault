@@ -20,6 +20,8 @@ const BigBidness = () => {
   const [recipientAddress, setRecipientAddress] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSerialNumberAdded, setIsSerialNumberAdded] = useState(false);
+  const [isAddingSerialNumber, setIsAddingSerialNumber] = useState(false);
+  const [isSerialNumberAdditionPending, setIsSerialNumberAdditionPending] = useState(false);
 
   const { writeContract: writeAddValidHash, data: addHashData } = useWriteContract();
   const { 
@@ -56,12 +58,16 @@ const BigBidness = () => {
   useEffect(() => {
     if (isAddHashConfirmed) {
       refetchIsValidHash();
+      setIsAddingSerialNumber(false);
+      setIsSerialNumberAdditionPending(false);
     }
   }, [isAddHashConfirmed, refetchIsValidHash]);
 
   useEffect(() => {
     if (isValidHash) {
       setIsSerialNumberAdded(true);
+      setIsAddingSerialNumber(false);
+      setIsSerialNumberAdditionPending(false);
     }
   }, [isValidHash]);
 
@@ -97,12 +103,15 @@ const BigBidness = () => {
   };
 
   const addValidHash = async () => {
-    if (!serialNumber) {
-      console.error('No serial number generated');
+    if (!serialNumber || isAddingSerialNumber || isSerialNumberAdditionPending) {
+      console.log('Serial number addition already in progress or no serial number');
       return;
     }
     const serialNumberHash = keccak256(toHex(serialNumber));
     try {
+      setIsAddingSerialNumber(true);
+      setIsSerialNumberAdditionPending(true);
+      setErrorMessage('');
       await writeAddValidHash({
         address: CONTRACT_ADDRESS,
         abi: abi,
@@ -114,6 +123,8 @@ const BigBidness = () => {
     } catch (error) {
       console.error('Error adding serial number:', error);
       setErrorMessage('Error adding serial number. Please try again.');
+      setIsAddingSerialNumber(false);
+      setIsSerialNumberAdditionPending(false);
     }
   };
 
@@ -242,10 +253,10 @@ const BigBidness = () => {
                 />
                 <button 
                   onClick={addValidHash}
-                  disabled={isSerialNumberAdded}
+                  disabled={isSerialNumberAdded || isAddingSerialNumber || isSerialNumberAdditionPending}
                   className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full transition-colors mt-4 disabled:bg-blue-300 disabled:cursor-not-allowed"
                 >
-                  {isAddHashConfirming ? 'Adding Serial Number...' : isSerialNumberAdded ? 'Serial Number Added' : 'Add Serial Number'}
+                  {isAddingSerialNumber || isSerialNumberAdditionPending ? 'Adding Serial Number...' : isSerialNumberAdded ? 'Serial Number Added' : 'Add Serial Number'}
                 </button>
                 <button 
                   onClick={handleMint}
@@ -284,7 +295,7 @@ const BigBidness = () => {
         </main>
       </div>
 
-      {(isMintPending || isMintConfirming || isAddHashConfirming) && <PinkSpinner />}
+      {(isMintPending || isMintConfirming || isAddingSerialNumber || isSerialNumberAdditionPending) && <PinkSpinner />}
     </div>
   );
 };

@@ -4,58 +4,102 @@ import Head from 'next/head';
 import TextInput from '../components/textinput';
 import Link from 'next/link';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
-import { abi } from '../../abi/BerachainRewardsVault.json';
+import { abi as vaultAbi } from "../../abi/BerachainRewardsVault.json";
+import { abi as tokenAbi } from "../../abi/BeraBaddieToken.json";
 import PinkSpinner from '../components/PinkSpinner';
+import { parseEther } from 'viem';
 
 const VAULT_ADDRESS = '0x30218362267600895Dcf6ccCDb7191dE7c01085F';
+const STAKE_TOKEN_ADDRESS = '0x1a8D9CE295485310130A4ec41029eDe6a00Fdc8A';
 const EXPLORER_URL = 'https://bartio.beratrail.io/';
+
+const SuccessPopup: React.FC = () => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
+        <svg className="w-16 h-16 text-green-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+        <p className="text-pink-500 font-bold text-xl">Staking Successful! 🎉</p>
+        <p className="mt-2 text-gray-600">Your Baddie is now staked 🥰</p>
+      </div>
+    </div>
+  );
+};
 
 const Stake = () => {
   const [stakeAmount, setStakeAmount] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const { address } = useAccount();
 
-  const { 
-    writeContract: writeStake,
-    data: stakeHash,
-    isPending: isStakePending,
-    error: stakeError 
-  } = useWriteContract();
+  const { writeContract: writeApprove } = useWriteContract();
+  const { writeContract: writeStake } = useWriteContract();
 
-  const { 
-    isLoading: isStakeConfirming, 
-    isSuccess: isStakeConfirmed 
-  } = useWaitForTransactionReceipt({
-    hash: stakeHash,
-  });
-
-  const handleStake = async () => {
+  const handleStakeProcess = async () => {
     setErrorMessage('');
+    setIsProcessing(true);
+    setIsSuccess(false);
+
     if (!stakeAmount) {
       setErrorMessage('Please enter an amount to stake');
+      setIsProcessing(false);
       return;
     }
     if (!address) {
       setErrorMessage('Please connect your wallet');
+      setIsProcessing(false);
       return;
     }
 
     try {
-      const amount = BigInt(parseFloat(stakeAmount) * 1e18); // Convert to wei
-      console.log('Attempting to stake:', amount.toString());
+      const amount = parseEther(stakeAmount);
+
+      // Step 1: Approve
+      console.log('Initiating approval...');
+      await writeApprove({
+        address: STAKE_TOKEN_ADDRESS,
+        abi: tokenAbi,
+        functionName: 'approve',
+        args: [VAULT_ADDRESS, amount],
+      });
+
+      console.log('Approval transaction sent');
+
+      // Wait for 3 seconds
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      console.log('Proceeding to stake after delay');
+
+      // Step 2: Stake
+      console.log('Initiating stake...');
       await writeStake({
         address: VAULT_ADDRESS,
-        abi: abi,
-        functionName: 'delegateStake',
-        args: [address, amount],
+        abi: vaultAbi,
+        functionName: 'stake',
+        args: [amount],
       });
+
+      console.log('Stake transaction sent');
+
+      // Wait for 3 seconds
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      console.log('Staking process completed');
+      setIsSuccess(true);
+      // Show success popup for 3 seconds
+      setTimeout(() => setIsSuccess(false), 3000);
+
     } catch (error) {
-      console.error('Error during staking process:', error);
+      console.error('Error during approval/staking process:', error);
       if (error instanceof Error) {
         setErrorMessage(`Error: ${error.message}`);
       } else {
-        setErrorMessage('An unknown error occurred during the staking process');
+        setErrorMessage('An unknown error occurred during the approval/staking process');
       }
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -107,43 +151,23 @@ const Stake = () => {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStakeAmount(e.target.value)}
             />
             <button 
-              onClick={handleStake}
-              disabled={isStakePending || isStakeConfirming}
+              onClick={handleStakeProcess}
+              disabled={isProcessing}
               className="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 px-4 rounded-full transition-colors disabled:bg-pink-300 disabled:cursor-not-allowed"
             >
-              {isStakePending ? 'Confirming...' : isStakeConfirming ? 'Staking...' : 'Gib 🥺👉👈'}
+              {isProcessing ? 'Processing...' : 'Gib 🥺👉👈'}
             </button>
             {errorMessage && (
               <div className="mt-2 text-sm text-red-600">
                 {errorMessage}
               </div>
             )}
-            {isStakeConfirmed && (
-              <div className="mt-2 text-lg font-bold text-green-600">
-                Stake confirmed! ✅
-                <br />
-                <a 
-                  href={`${EXPLORER_URL}/tx/${stakeHash}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-pink-500 hover:text-pink-600"
-                >
-                  View on Explorer
-                </a>
-              </div>
-            )}
           </div>
         </main>
       </div>
 
-      {(isStakePending || isStakeConfirming) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="text-white text-2xl font-bold">
-            <PinkSpinner />
-            <p className="mt-4">Loading...</p>
-          </div>
-        </div>
-      )}
+      {isProcessing && <PinkSpinner />}
+      {isSuccess && <SuccessPopup />}
     </div>
   );
 };

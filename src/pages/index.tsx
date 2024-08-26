@@ -50,6 +50,8 @@ const Home: NextPage = () => {
     return isValidSerial && BigInt(isValidSerial) !== BigInt(0);
   };
 
+  const [isWaitingForWallet, setIsWaitingForWallet] = useState(false);
+
   useEffect(() => {
     if (claimError) {
       console.error('Claim Error:', claimError);
@@ -73,12 +75,15 @@ const Home: NextPage = () => {
 
   const handleClaim = async () => {
     setErrorMessage('');
+    setIsWaitingForWallet(true);
     if (!serialNumber) {
       setErrorMessage('Please enter a serial number');
+      setIsWaitingForWallet(false);
       return;
     }
     if (!address) {
       setErrorMessage('Please connect your wallet');
+      setIsWaitingForWallet(false);
       return;
     }
     
@@ -87,6 +92,7 @@ const Home: NextPage = () => {
     console.log('Serial number is valid:', isValid);
     if (!isValid) {
       setErrorMessage('Invalid serial number. Please check and try again.');
+      setIsWaitingForWallet(false);
       return;
     }
 
@@ -100,11 +106,13 @@ const Home: NextPage = () => {
       });
     } catch (error) {
       console.error('Error during claim process:', error);
-      if (error instanceof Error) {
+      if (error instanceof Error && 
+          !error.message.includes('User rejected') && 
+          !error.message.includes('User denied')) {
         setErrorMessage(`Error: ${error.message}`);
-      } else {
-        setErrorMessage('An unknown error occurred during the claim process');
       }
+    } finally {
+      setIsWaitingForWallet(false);
     }
   };
 
@@ -184,11 +192,13 @@ const Home: NextPage = () => {
         </main>
       </div>
 
-      {(isClaimPending || isClaimConfirming) && (
+      {(isClaimPending || isClaimConfirming || isWaitingForWallet) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="text-white text-2xl font-bold">
+          <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
             <PinkSpinner />
-            <p className="mt-4">Loading...</p>
+            <p className="mt-4 text-pink-500 font-bold">
+              {isWaitingForWallet ? 'Waiting for wallet interaction...' : 'Processing claim...'}
+            </p>
           </div>
         </div>
       )}
