@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract, useAccount } from 'wagmi';
 import { abi } from '../../abi/BeraBaddieToken.json';
 import { abi as merchNFTAbi } from '../../abi/MerchNFT.json';
-import PinkSpinner from '../components/PinkSpinner';
+import PinkSpinner from '../components/pinkspinner';
 import { keccak256, toHex } from 'viem';
 
 const CONTRACT_ADDRESS = '0x1a8D9CE295485310130A4ec41029eDe6a00Fdc8A';
@@ -47,7 +47,7 @@ const Home: NextPage = () => {
     console.log('Hash:', serialHash);
     await refetchIsValidSerial();
     console.log('Token ID:', isValidSerial);
-    return isValidSerial && BigInt(isValidSerial) !== BigInt(0);
+    return isValidSerial && BigInt(isValidSerial as bigint) !== BigInt(0);
   };
 
   const [isWaitingForWallet, setIsWaitingForWallet] = useState(false);

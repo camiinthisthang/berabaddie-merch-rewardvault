@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { abi as vaultAbi } from "../../abi/BerachainRewardsVault.json";
 import { abi as tokenAbi } from "../../abi/BeraBaddieToken.json";
-import PinkSpinner from '../components/PinkSpinner';
+import PinkSpinner from '../components/pinkspinner';
 import { parseEther } from 'viem';
 
 const VAULT_ADDRESS = '0x30218362267600895Dcf6ccCDb7191dE7c01085F';

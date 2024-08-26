@@ -5,7 +5,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { keccak256, toHex } from 'viem'
 import { abi } from '../../abi/MerchNFT.json';
-import PinkSpinner from '../components/PinkSpinner';
+import PinkSpinner from '../components/pinkspinner';
 
 const PASSWORD = 'berabaddiebabybabbybaliciousberaboken';
 const CONTRACT_ADDRESS = '0xfE8CA5C708Daf7e6A321a0573841b61070fAC052';
